@@ -1,5 +1,4 @@
 ﻿
-
 #region using statements
 
 using System.Diagnostics;
@@ -19,20 +18,24 @@ namespace DataJuggler.FFmpeg
         
         #region Methods
 
-            #region ConvertToImageSequence(string ffmpegPath, string inputPath, string outputFolder)
+            #region ConvertToImageSequence(string inputPath, string outputFolder)
             /// <summary>
             /// Converts an MP4 to an image sequence of PNGs.
             /// </summary>                                   
-            public static bool ConvertToImageSequence(string ffmpegPath, string inputPath, string outputFolder)
+            public static bool ConvertToImageSequence(string inputPath, string outputFolder)
             {
                 // initial value
                 bool converted = false;
 
                 try
                 {
+                    // determine ffmpeg path
+                    string ffmpegPath = GetFFmpegPath();
+
                     // ensure output folder exists
                     if (!Directory.Exists(outputFolder))
                     {
+                        // Create the directory if it doesn't exist
                         Directory.CreateDirectory(outputFolder);
                     }
 
@@ -52,6 +55,7 @@ namespace DataJuggler.FFmpeg
                 }
                 catch (Exception error)
                 {
+                    // For debugging only for now
                     DebugHelper.WriteDebugError("ConvertToImageSequence", "FFmpegHelper", error);
                 }
 
@@ -60,17 +64,20 @@ namespace DataJuggler.FFmpeg
             }
             #endregion
             
-            #region CreateMP4FromImages(string ffmpegPath, string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
+            #region CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
             /// <summary>
             /// Creates an MP4 from a sequence of images using FFmpeg.
             /// </summary>
-            public static bool CreateMP4FromImages(string ffmpegPath, string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
+            public static bool CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
             {
                 // initial value
                 bool created = false;
 
                 try
                 {
+                    // determine ffmpeg path
+                    string ffmpegPath = GetFFmpegPath();
+
                     var process = new Process();
                     process.StartInfo.FileName = ffmpegPath;
 
@@ -111,6 +118,7 @@ namespace DataJuggler.FFmpeg
                 }
                 catch (Exception error)
                 {
+                    // For debugging only for now
                     DebugHelper.WriteDebugError("CreateMP4FromImages", "FFmpegHelper", error);
                 }
 
@@ -118,18 +126,21 @@ namespace DataJuggler.FFmpeg
                 return created;
             }
             #endregion
-            
-            #region ExtractLastFrame(string ffmpegPath, string inputPath, string outputPath)
+
+            #region ExtractLastFrame(string inputPath, string outputPath)
             /// <summary>
             /// Extracts the last frame of a video using FFmpeg.
             /// </summary>
-            public static bool ExtractLastFrame(string ffmpegPath, string inputPath, string outputPath)
+            public static bool ExtractLastFrame(string inputPath, string outputPath)
             {
                 // initial value
                 bool extracted = false;
 
                 try
                 {
+                    // determine ffmpeg path
+                    string ffmpegPath = GetFFmpegPath();
+
                     var process = new Process();
                     process.StartInfo.FileName = ffmpegPath;
                     process.StartInfo.Arguments = $"-sseof -1 -i \"{inputPath}\" -update 1 -q:v 1 \"{outputPath}\"";
@@ -156,36 +167,45 @@ namespace DataJuggler.FFmpeg
             }
             #endregion
 
+            #region GetFFmpegPath()
+            /// <summary>
+            /// method returns the F Fmpeg Path
+            /// </summary>
+            public static string GetFFmpegPath()
+            {
+                // return the Path to the FFmpeg folder
+                return Path.Combine(AppContext.BaseDirectory, "FFmpeg", "bin", "ffmpeg.exe");
+            }
+            #endregion
+            
             #region SplitVideo(string inputFilePath, string outputFolder, StatusUpdate statusUpdate, int chunkLengthSeconds = 15)
             /// <summary>
             /// Splits a video file into equal-length chunks using FFmpeg.
             /// </summary>
-            /// <param name="ffmpegPath">The full path to ffmpeg.exe</param>
             /// <param name="inputFilePath">The full path to the video to split.</param>
             /// <param name="outputFolder">The folder where the chunks will be saved.</param>
             /// <param name="statusUpdate">An optional delegate for reporting status updates.</param>
-            /// <param name="chunkLengthSeconds">The duration in seconds for each output chunk. Default is 10.</param>
+            /// <param name="chunkLengthSeconds">The duration in seconds for each output chunk. Default is 15.</param>
             /// <returns>True if the split was successful; otherwise, false.</returns>            
-            public static bool SplitVideo(string ffmpegPath, string inputFilePath, string outputFolder, StatusUpdate statusUpdate, int chunkLengthSeconds = 15)
+            public static bool SplitVideo(string inputFilePath, string outputFolder, StatusUpdate statusUpdate, int chunkLengthSeconds = 15)
             {
                 bool split = false;
 
                 try
                 {
+                    // determine ffmpeg path
+                    string ffmpegPath = GetFFmpegPath();
+
                     // if the file and the Directory exist
-                    if (FileHelper.Exists(inputFilePath) && (FileHelper.Exists(ffmpegPath)) && Directory.Exists(outputFolder))
+                    if (FileHelper.Exists(inputFilePath) && FileHelper.Exists(ffmpegPath) && Directory.Exists(outputFolder))
                     {
                         // If the statusUpdate object exists
                         if (NullHelper.Exists(statusUpdate))
                         {
-                            // call back
                             statusUpdate.Invoke("FFmpegHelper", "Splitting video into " + chunkLengthSeconds + " second chunks...");
                         }
 
-                        // Define the output file naming pattern where each chunk will be named
-                        // sequentially as "chunk_000.mp4", "chunk_001.mp4", etc.
-                        // "%03d" is a printf-style placeholder used by FFmpeg to insert a zero-padded
-                        // 3-digit number (e.g., 000, 001, 002)
+                        // output pattern like chunk_000.mp4, chunk_001.mp4, etc.
                         string outputPattern = Path.Combine(outputFolder, "chunk_%03d.mp4");
 
                         Process process = new Process();
@@ -200,7 +220,6 @@ namespace DataJuggler.FFmpeg
                         {
                             if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
                             {
-                                // call back
                                 statusUpdate.Invoke("FFmpegHelper", e.Data);
                             }
                         };
@@ -209,7 +228,6 @@ namespace DataJuggler.FFmpeg
                         {
                             if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
                             {
-                                // call back
                                 statusUpdate.Invoke("FFmpegHelper", e.Data);
                             }
                         };
@@ -221,27 +239,15 @@ namespace DataJuggler.FFmpeg
 
                         split = process.ExitCode == 0;
 
-                        // If the statusUpdate object exists
                         if (NullHelper.Exists(statusUpdate))
                         {
-                            // Determine the message based on the split result
-                            string message = "Video split failed.";
-
-                            // if split
-                            if (split)
-                            {
-                                // change the message to success
-                                message = "Video split complete.";
-                            }
-
-                            // Invoke the status update callback
+                            string message = split ? "Video split complete." : "Video split failed.";
                             statusUpdate.Invoke("FFmpegHelper", message);
                         }
                     }
                 }
                 catch (Exception error)
                 {
-                    // For debugging only for now
                     DebugHelper.WriteDebugError("SplitVideo", "FFmpegHelper", error);
                 }
 
