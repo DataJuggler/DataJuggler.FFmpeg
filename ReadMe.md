@@ -139,3 +139,21 @@ smaller chunks is recommended.
     bool result = FFmpegHelper.SplitVideo(inputPath, outputFolder, Callback, chunkLength);
 
     If you have any problems or questions, please create an issue on GitHub.
+
+# Credits
+
+This project would not be possible without the incredible work of the FFmpeg team.
+
+FFmpeg is a powerful multimedia framework used for video and audio processing. This 
+project uses FFmpeg to extract frames, convert videos to image sequences, and 
+reassemble videos. All video-related operations in this tool are powered by FFmpeg.
+
+We do not modify or redistribute FFmpeg’s source. FFmpeg is included as a standalone 
+executable, and all credit for its capabilities goes to the FFmpeg community.
+
+FFmpeg is licensed under the GNU LGPL or GPL, depending on configuration.
+
+Learn more at:  
+<a href="https://ffmpeg.org/">https://ffmpeg.org/</a>  
+<a href="https://github.com/FFmpeg/FFmpeg/blob/master/CREDITS">
+FFmpeg contributor credits</a>
