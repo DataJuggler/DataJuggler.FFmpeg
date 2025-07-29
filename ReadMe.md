@@ -27,12 +27,17 @@ DataJuggler.FFmpeg/
 # StatusUpdate - Callback delegate to receive notifcations from long running processes. 
 
 Also included in this project is a delegate called StatusUpdate, used to notify callers something
-is happening using FFmpeg or also RealESRGANHelper used for upscaling using Vulkan *
+is happening using FFmpeg or also RealESRGANHelper used for upscaling using Vulkan.
 
-* Vulkan is where the name Leonard came from (Spock came from Vulcan). 
+Note: Vulkan is where the name Leonard came from (Spock came from Vulcan). 
 
     // This delegate is used to receive info from long running processes 
     public delegate void StatusUpdate(string sender, string data);
+
+Create a method to receive callbacks, and pass in that method name in place of StatusUpdate
+
+# Example Callback Method
+    
 
 To receive notifications, create a method in your project such as:
 
@@ -52,6 +57,80 @@ Then to call any of the FFmpegHelper methods, pass in your Callback method for S
 
 If you do not need to receive notifications, pass in null for the StatusUpdate delegate.
 
-If you find this prfoject, or any of my 100+ other projects worth the price, please leave a star!
+If you find this project, or any of my 100+ other projects worth the price, please leave a star!
 
 https://github.com/DataJuggler/
+
+## Sample Code. This sesction provides guidance on how to call the methods in this project
+
+## ConvertToImageSequence
+
+Converts an MP4 into a numbered PNG sequence. The output will be in the format Image1.png,
+Image2.png, etc.
+
+     // modify the paths
+    string inputPath = @"C:\Videos\MyInput.mp4";
+    string outputFolder = @"C:\Frames\Output";
+
+    // Perform convert from an mp4 to an image sequence
+    bool result = FFmpegHelper.ConvertToImageSequence(inputPath, outputFolder);
+
+
+## CreateMP4FromImages
+
+The CreateMP4FromImages method will convert a directory of images into an MP4. 
+
+    // modify the paths
+    string inputPath = @"C:\Temp\Upscaled";
+    string outputMp4Path = @"C:\Videos\Waterfall.mp4";
+
+    // Create an MP4 from a directory of images
+    bool result = FFmpegHelper.CreateMP4FromImages(inputPath, outputMp4Path, Callback, crf: 14, framerate: 30);
+
+
+## ExtractLastFrame
+
+The ExtractLastFrame method is useful with AI videos where you want to use the last frame
+from one video as the first image in another continuing video. 
+
+# This method will launch the last frame in your default image editor for .png's
+
+    // change to your paths
+    string inputPath = @"C:\Videos\MyInput.mp4";
+    string outputPath = @"C:\Temp\LastFrame.png";
+
+    // Extract the last frame
+    bool result = FFmpegHelper.ExtractLastFrame(inputPath, outputPath);
+
+
+## #region GetFFmpegPath()
+
+This method is used internally to get the path to ffmpeg.exe, which is stored in this NuGet 
+package. In most cases you should not have to call this method. It's only included for
+documentation purposes.
+
+        /// <summary>
+        /// method returns the F Fmpeg Path
+        /// </summary>
+        public static string GetFFmpegPath()
+        {
+            // return the Path to the FFmpeg folder
+            return Path.Combine(AppContext.BaseDirectory, "FFmpeg", "bin", "ffmpeg.exe");
+        }
+        
+        
+## SplitVideo
+
+This method is used to split a video into smaller chunks. The Upscaling portion of Leonard is
+extrremely slow. A 2 minute video at 30 FPS is 3,600 images. Splitting the video up into
+smaller chunks is recommended. 
+
+    // modify the paths
+    string inputPath = @"C:\Videos\MyInput.mp4";
+    string outputFolder = @"C:\Videos\Chunks";
+    int chunkLength = 15;
+
+    // Split the video into sections
+    bool result = FFmpegHelper.SplitVideo(inputPath, outputFolder, Callback, chunkLength);
+
+    If you have any problems or questions, please create an issue on GitHub.

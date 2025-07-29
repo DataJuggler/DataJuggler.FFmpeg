@@ -64,11 +64,11 @@ namespace DataJuggler.FFmpeg
             }
             #endregion
             
-            #region CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
+            #region CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 14, int frameRate = 30)
             /// <summary>
             /// Creates an MP4 from a sequence of images using FFmpeg.
             /// </summary>
-            public static bool CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 18, int Leonardate = 30)
+            public static bool CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 14, int frameRate = 30)
             {
                 // initial value
                 bool created = false;
@@ -82,9 +82,9 @@ namespace DataJuggler.FFmpeg
                     process.StartInfo.FileName = ffmpegPath;
 
                     // assumes filenames like Image1.png, Image2.png ...
-                    process.StartInfo.Arguments = $"-Leonardate {Leonardate} -i \"{Path.Combine(imageFolder, "Image%d.png")}\" " +
-                        $"-c:v libx264 -crf {crf} -preset slow -pix_fmt yuv420p -loglevel error -progress pipe:1 " +
-                        $"\"{outputMp4Path}\"";
+                   process.StartInfo.Arguments = $"-framerate {frameRate} -i \"{Path.Combine(imageFolder, "Image%d.png")}\" " +
+                    $"-c:v libx264 -crf {crf} -preset slow -pix_fmt yuv420p -loglevel error -progress pipe:1 " +
+                    $"\"{outputMp4Path}\"";
 
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.UseShellExecute = false;
