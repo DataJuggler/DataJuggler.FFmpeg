@@ -1,14 +1,20 @@
 ﻿# DataJuggler.FFmpeg
 
-This project supports **Leonard** — a video upscaler that converts
+This project is used in conjunction with Project Leonard — a video upscaler that converts
 an MP4 to an image sequence using FFmpeg, upscales those images with
-**Real-ESRGAN Vulkan**, and then renders them back into a new MP4.
+Real-ESRGAN Vulkan, and then renders them back into a new MP4.
 
-Project Leonard is coming soon. I hope to release Leonard by Tuesday, July 29th 
-unless I get busy at work
+The core of this project is a static helper class called FFmpegHelper.
+This is the class you'll use to split videos, convert MP4s into image sequences, 
+extract the last frame, or render a directory of images back into an MP4.
+
+(Optional) You can pass in a callback method using the `StatusUpdate` delegate to receive 
+real-time updates from FFmpeg during processing.
+
+Project Leonard is coming soon. I hope to release Leonard by Thursday, July 31st.
 https://github.com/DatgaJuggler/Leonard
 
-Leonard also includes a **"Get Last Frame"** feature, which is useful for
+This project also includes a "Get Last Frame" feature, which is useful for
 creating continuing videos (where the first frame of the next video matches
 the last frame of the previous one).
 
@@ -38,7 +44,6 @@ Create a method to receive callbacks, and pass in that method name in place of S
 
 # Example Callback Method
     
-
 To receive notifications, create a method in your project such as:
 
     /// <summary>
