@@ -1,34 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Version>1.0.2</Version>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageProjectUrl>https://github.com/DataJuggler/DataJuggler.FFmpeg</PackageProjectUrl>
-    <PackageIcon>MovieIcon.png</PackageIcon>
-    <PackageReadmeFile>ReadMe.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-  </PropertyGroup>
-	
-    <ItemGroup>
-        <PackageReference Include="DataJuggler.UltimateHelper" Version="9.1.1" />
-    </ItemGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>1.0.3</Version>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageProjectUrl>https://github.com/DataJuggler/DataJuggler.FFmpeg</PackageProjectUrl>
+		<PackageIcon>MovieIcon.png</PackageIcon>
+		<PackageReadmeFile>ReadMe.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="FFmpeg\**\*.*" Pack="true" PackagePath="contentFiles\any\any\FFmpeg" CopyToOutputDirectory="PreserveNewest" />
+		<PackageReference Include="DataJuggler.UltimateHelper" Version="9.1.1" />
+	</ItemGroup>
+
+	<!-- FFmpeg folder as NuGet content -->
+	<ItemGroup>
+		<None Include="FFmpeg\**\*.*">
+			<Pack>true</Pack>
+			<PackagePath>contentFiles\any\any\FFmpeg\</PackagePath>
+		</None>
+
+		<!-- Include the .targets file -->
+		<None Include="build\DataJuggler.FFmpeg.targets">
+			<Pack>true</Pack>
+			<PackagePath>build\DataJuggler.FFmpeg.targets</PackagePath>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="MovieIcon.png">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
-	  <None Update="ReadMe.md">
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </None>
+		<None Update="MovieIcon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="ReadMe.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 	</ItemGroup>
 
 </Project>

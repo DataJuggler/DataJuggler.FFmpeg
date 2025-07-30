@@ -1,0 +1,11 @@
+﻿<Project>
+  <Target Name="CopyFFmpegContent" AfterTargets="Build">
+    <ItemGroup>
+      <FFmpegFiles Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\FFmpeg\**\*.*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(FFmpegFiles)"
+          DestinationFolder="$(OutputPath)FFmpeg\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>
