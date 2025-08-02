@@ -4,7 +4,7 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageProjectUrl>https://github.com/DataJuggler/DataJuggler.FFmpeg</PackageProjectUrl>
 		<PackageIcon>MovieIcon.png</PackageIcon>
@@ -13,7 +13,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="DataJuggler.UltimateHelper" Version="9.1.1" />
+		<PackageReference Include="DataJuggler.UltimateHelper" Version="9.1.2" />
 	</ItemGroup>
 
 	<!-- FFmpeg folder as NuGet content -->

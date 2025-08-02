@@ -11,7 +11,7 @@ extract the last frame, or render a directory of images back into an MP4.
 (Optional) You can pass in a callback method using the `StatusUpdate` delegate to receive 
 real-time updates from FFmpeg during processing.
 
-Project Leonard is coming soon. I hope to release Leonard by Thursday, July 31st.
+Project Leonard is coming soon. I hope to release Leonard by Saturday August 2..
 https://github.com/DatgaJuggler/Leonard
 
 This project also includes a "Get Last Frame" feature, which is useful for
@@ -139,6 +139,14 @@ smaller chunks is recommended.
     bool result = FFmpegHelper.SplitVideo(inputPath, outputFolder, Callback, chunkLength);
 
     If you have any problems or questions, please create an issue on GitHub.
+
+## News
+8.1.2025 - Added a new CleanseVideo method. Often AI video, especially from opensource projects tend to lack proper
+meta data. This causes ffmpeg to freeze. This is untested, but it can't hurt.
+
+# Troubleshooting
+
+If a method freezes up and does not return, open the video in your favorite video editor and resave it.
 
 # Credits
 
