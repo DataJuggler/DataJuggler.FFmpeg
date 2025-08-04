@@ -141,8 +141,12 @@ smaller chunks is recommended.
     If you have any problems or questions, please create an issue on GitHub.
 
 ## News
+
 8.1.2025 - Added a new CleanseVideo method. Often AI video, especially from opensource projects tend to lack proper
 meta data. This causes ffmpeg to freeze. This is untested, but it can't hurt.
+
+8.3.2025 - I changed the result of the methods from bool to a ProcessResult. The reason is so I can kill the process
+after a timeout.
 
 # Troubleshooting
 

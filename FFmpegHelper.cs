@@ -1,6 +1,7 @@
 ﻿
 #region using statements
 
+using DataJuggler.Shared;
 using DataJuggler.UltimateHelper;
 using System.Diagnostics;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -23,17 +24,11 @@ namespace DataJuggler.FFmpeg
             /// <summary>
             /// Cleanses an MP4 by remuxing with FFmpeg to fix missing metadata or indexing issues.
             /// </summary>
-            /// <param name="inputPath">The path to the AI-generated or problematic MP4 file.</param>
-            /// <param name="outputPath">The path where the cleaned MP4 will be saved.</param>
-            /// <param name="callback">A callback delegate (optional)</param>
-            /// <returns>True if successful; otherwise false.</returns>
-            public static bool CleanseVideo(string inputPath, string outputPath, StatusUpdate callback)
+            public static ProcessResult CleanseVideo(string inputPath, string outputPath, StatusUpdate callback)
             {
                 // initial value
-                bool isSuccess = false;
-
-                // local
-                string ffmpegOutput = "";
+                ProcessResult result = new ProcessResult();
+                result.MethodName = "CleanseVideo";
 
                 try
                 {
@@ -41,9 +36,8 @@ namespace DataJuggler.FFmpeg
                     string ffmpegPath = GetFFmpegPath();
 
                     // verify input and output
-                    if ((FileHelper.Exists(inputPath)) && (TextHelper.Exists(outputPath)) && (FileHelper.Exists(ffmpegPath)))
-                    { 
-                        // build args
+                    if (FileHelper.Exists(inputPath) && TextHelper.Exists(outputPath) && FileHelper.Exists(ffmpegPath))
+                    {
                         string args = $"-i \"{inputPath}\" -map 0 -c copy -movflags +faststart \"{outputPath}\"";
 
                         ProcessStartInfo startInfo = new ProcessStartInfo
@@ -56,40 +50,48 @@ namespace DataJuggler.FFmpeg
                             CreateNoWindow = true
                         };
 
-                        using (Process process = new Process { StartInfo = startInfo })
-                        {
-                            process.Start();
+                        Process process = new Process { StartInfo = startInfo };
 
-                            // capture ffmpeg output
-                            ffmpegOutput = process.StandardError.ReadToEnd();
-                            process.WaitForExit();
-                        }
+                        DateTime startTime = DateTime.Now;
 
-                        // set return value
-                        if (File.Exists(outputPath))
-                        {
-                            isSuccess = true;
-                        }
+                        process.Start();
+                        string ffmpegOutput = process.StandardError.ReadToEnd();
+                        process.WaitForExit();
 
-                        // capture error
+                        result.Process = process;
+                        result.OutputText = ""; // stdout isn't used
+                        result.ErrorText = ffmpegOutput.Trim();
+                        result.ExitCode = process.ExitCode;
+                        result.Duration = DateTime.Now - startTime;
+                        result.Success = (File.Exists(outputPath) && process.ExitCode == 0);
+
                         if (NullHelper.Exists(callback))
                         {
-                            // call back
-                            callback("FFmpegHelper", "Cleanse: " + " " + isSuccess + " " +ffmpegOutput);
+                            string summary = result.Success ? "Cleanse succeeded." : "Cleanse failed.";
+                            callback("FFmpegHelper", $"{summary} ExitCode: {result.ExitCode} Output: {result.ErrorText}");
+                        }
+                    }
+                    else
+                    {
+                        result.ErrorText = "Invalid input or missing ffmpeg path or output path.";
+                        if (NullHelper.Exists(callback))
+                        {
+                            callback("FFmpegHelper", result.ErrorText);
                         }
                     }
                 }
                 catch (Exception error)
                 {
-                    // capture error
+                    result.ErrorText = "Exception: " + error.Message;
+
                     if (NullHelper.Exists(callback))
                     {
-                        callback("FFmpegHelper", "Error: " + error.Message);
+                        callback("FFmpegHelper", result.ErrorText);
                     }
                 }
 
                 // return value
-                return isSuccess;
+                return result;
             }
             #endregion
 
@@ -97,10 +99,11 @@ namespace DataJuggler.FFmpeg
             /// <summary>
             /// Converts an MP4 to an image sequence of PNGs.
             /// </summary>                                   
-            public static bool ConvertToImageSequence(string inputPath, string outputFolder, StatusUpdate callback)
+            public static ProcessResult ConvertToImageSequence(string inputPath, string outputFolder, StatusUpdate callback)
             {
                 // initial value
-                bool converted = false;
+                ProcessResult result = new ProcessResult();
+                result.MethodName = "ConvertToImageSequence";
 
                 try
                 {
@@ -110,16 +113,16 @@ namespace DataJuggler.FFmpeg
                     // If the Directory exists
                     if (FolderHelper.Exists(outputFolder))
                     {
-                        // create at temp file
+                        // create a temp file
                         string cleansedFilePath = FileHelper.CreateFileNameWithPartialGuid(inputPath, 12);
 
                         // cleanse the video
-                        bool cleansed = CleanseVideo(inputPath, cleansedFilePath, callback);
+                        ProcessResult cleanseResult = CleanseVideo(inputPath, cleansedFilePath, callback);
 
                         // if cleansed
-                        if (cleansed)
+                        if (cleanseResult.Success)
                         {
-                            var process = new Process();
+                            Process process = new Process();
                             process.StartInfo.FileName = ffmpegPath;
                             process.StartInfo.Arguments = $"-i \"{cleansedFilePath}\" \"{Path.Combine(outputFolder, "Image%d.png")}\"";
                             process.StartInfo.CreateNoWindow = true;
@@ -127,26 +130,45 @@ namespace DataJuggler.FFmpeg
                             process.StartInfo.RedirectStandardOutput = false;
                             process.StartInfo.RedirectStandardError = true;
 
+                            // Start timing
+                            DateTime startTime = DateTime.Now;
+
                             process.Start();
                             process.WaitForExit();
 
-                            // set return value
-                            converted = (process.ExitCode == 0);
+                            // Fill result
+                            result.Process = process;
+                            result.ExitCode = process.ExitCode;
+                            result.Duration = DateTime.Now - startTime;
+                            result.Success = (process.ExitCode == 0);
+
+                            if (!result.Success)
+                            {
+                                result.ErrorText = process.StandardError.ReadToEnd();
+                            }
                         }
+                        else
+                        {
+                            result.ErrorText = "Video cleansing failed.";
+                        }
+                    }
+                    else
+                    {
+                        result.ErrorText = "Output folder not found: " + outputFolder;
                     }
                 }
                 catch (Exception error)
                 {
-                    // If the callback object exists
+                    result.ErrorText = "Exception: " + error.ToString();
+
                     if (NullHelper.Exists(callback))
                     {
-                        // send info back to the user
-                        callback("FFmpegHelper - ConvertToImageSequence ", "Error: " + error.ToString());
+                        callback("FFmpegHelper - ConvertToImageSequence", "Error: " + result.ErrorText);
                     }
                 }
 
                 // return value
-                return converted;
+                return result;
             }
             #endregion
             
@@ -154,73 +176,99 @@ namespace DataJuggler.FFmpeg
             /// <summary>
             /// Creates an MP4 from a sequence of images using FFmpeg.
             /// </summary>
-            public static bool CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 14, int frameRate = 30)
+            public static ProcessResult CreateMP4FromImages(string imageFolder, string outputMp4Path, StatusUpdate statusUpdate, int crf = 14, int frameRate = 30)
             {
                 // initial value
-                bool created = false;
+                ProcessResult result = new ProcessResult();
+
+                // Set the method name
+                result.MethodName = "CreateMP4FromImages";
 
                 try
                 {
                     // determine ffmpeg path
                     string ffmpegPath = GetFFmpegPath();
 
-                    var process = new Process();
+                    Process process = new Process();
                     process.StartInfo.FileName = ffmpegPath;
 
                     // assumes filenames like Image1.png, Image2.png ...
-                   process.StartInfo.Arguments = $"-framerate {frameRate} -i \"{Path.Combine(imageFolder, "Image%d.png")}\" " +
-                    $"-c:v libx264 -crf {crf} -preset slow -pix_fmt yuv420p -loglevel error -progress pipe:1 " +
-                    $"\"{outputMp4Path}\"";
+                    process.StartInfo.Arguments = $"-framerate {frameRate} -i \"{Path.Combine(imageFolder, "Image%d.png")}\" " +
+                        $"-c:v libx264 -crf {crf} -preset slow -pix_fmt yuv420p -loglevel error -progress pipe:1 " +
+                        $"\"{outputMp4Path}\"";
 
                     process.StartInfo.CreateNoWindow = true;
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
 
+                    // Collect output text
+                    string outputText = string.Empty;
+                    string errorText = string.Empty;
+
                     // send error messages
                     process.ErrorDataReceived += (sender, e) =>
                     {
-                        if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
+                        if (TextHelper.Exists(e.Data))
                         {
-                            statusUpdate("FFmpegHelper", "[stderr] " + e.Data);
+                            errorText += e.Data + Environment.NewLine;
+
+                            if (NullHelper.Exists(statusUpdate))
+                            {
+                                statusUpdate("FFmpegHelper", "[stderr] " + e.Data);
+                            }
                         }
                     };
 
                     // send info back to caller
                     process.OutputDataReceived += (sender, e) =>
                     {
-                        if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
+                        if (TextHelper.Exists(e.Data))
                         {
-                            statusUpdate("FFmpegHelper", e.Data);
+                            outputText += e.Data + Environment.NewLine;
+
+                            if (NullHelper.Exists(statusUpdate))
+                            {
+                                statusUpdate("FFmpegHelper", e.Data);
+                            }
                         }
                     };
 
+                    DateTime startTime = DateTime.Now;
+
                     process.Start();
                     process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
                     process.WaitForExit();
 
-                    // set return value
-                    created = (process.ExitCode == 0 && File.Exists(outputMp4Path));
+                    // fill in result
+                    result.Process = process;
+                    result.OutputText = outputText.Trim();
+                    result.ErrorText = errorText.Trim();
+                    result.ExitCode = process.ExitCode;
+                    result.Duration = DateTime.Now - startTime;
+                    result.Success = (process.ExitCode == 0 && File.Exists(outputMp4Path));
                 }
                 catch (Exception error)
                 {
-                    // For debugging only for now
+                    result.ErrorText = "Exception: " + error.ToString();
                     DebugHelper.WriteDebugError("CreateMP4FromImages", "FFmpegHelper", error);
                 }
 
                 // return value
-                return created;
+                return result;
             }
             #endregion
 
-            #region ExtractLastFrame(string inputPath, string outputPath)
+            #region ExtractLastFrame(string inputPath, string outputPath, StatusUpdate callback)
             /// <summary>
             /// Extracts the last frame of a video using FFmpeg.
             /// </summary>
-            public static bool ExtractLastFrame(string inputPath, string outputPath)
+            public static ProcessResult ExtractLastFrame(string inputPath, string outputPath, StatusUpdate callback)
             {
                 // initial value
-                bool extracted = false;
+                ProcessResult result = new ProcessResult();
+                result.MethodName = "ExtractLastFrame";
 
                 try
                 {
@@ -230,13 +278,13 @@ namespace DataJuggler.FFmpeg
                     // create a temp file
                     string cleansedFilePath = FileHelper.CreateFileNameWithPartialGuid(inputPath, 12);
 
-                    // cleanse the video
-                    bool cleansed = CleanseVideo(inputPath, cleansedFilePath, null);
+                   // cleanse the video
+                    ProcessResult cleanseResult = CleanseVideo(inputPath, cleansedFilePath, callback);
 
                     // if cleansed
-                    if (cleansed)
+                    if (cleanseResult.Success)
                     {
-                        var process = new Process();
+                        Process process = new Process();
                         process.StartInfo.FileName = ffmpegPath;
                         process.StartInfo.Arguments = $"-sseof -1 -i \"{cleansedFilePath}\" -update 1 -q:v 1 \"{outputPath}\"";
                         process.StartInfo.CreateNoWindow = true;
@@ -244,21 +292,34 @@ namespace DataJuggler.FFmpeg
                         process.StartInfo.RedirectStandardOutput = true;
                         process.StartInfo.RedirectStandardError = true;
 
+                        DateTime startTime = DateTime.Now;
+
                         process.Start();
-                        string output = process.StandardError.ReadToEnd();
+
+                        string errorText = process.StandardError.ReadToEnd();
+
                         process.WaitForExit();
 
-                        // set return value
-                        extracted = (process.ExitCode == 0 && File.Exists(outputPath));
+                        result.Process = process;
+                        result.ExitCode = process.ExitCode;
+                        result.ErrorText = errorText.Trim();
+                        result.OutputText = ""; // Not used in this case
+                        result.Duration = DateTime.Now - startTime;
+                        result.Success = (process.ExitCode == 0 && File.Exists(outputPath));
+                    }
+                    else
+                    {
+                        result.ErrorText = "Video cleansing failed.";
                     }
                 }
                 catch (Exception error)
                 {
+                    result.ErrorText = "Exception: " + error.ToString();
                     DebugHelper.WriteDebugError("ExtractLastFrame", "FFmpegHelper", error);
                 }
 
                 // return value
-                return extracted;
+                return result;
             }
             #endregion
 
@@ -277,36 +338,32 @@ namespace DataJuggler.FFmpeg
             /// <summary>
             /// Splits a video file into equal-length chunks using FFmpeg.
             /// </summary>
-            /// <param name="inputFilePath">The full path to the video to split.</param>
-            /// <param name="outputFolder">The folder where the chunks will be saved.</param>
-            /// <param name="statusUpdate">An optional delegate for reporting status updates.</param>
-            /// <param name="chunkLengthSeconds">The duration in seconds for each output chunk. Default is 15.</param>
-            /// <returns>True if the split was successful; otherwise, false.</returns>            
-            public static bool SplitVideo(string inputFilePath, string outputFolder, StatusUpdate statusUpdate, int chunkLengthSeconds = 15)
+            public static ProcessResult SplitVideo(string inputFilePath, string outputFolder, StatusUpdate statusUpdate, int chunkLengthSeconds = 15)
             {
                 // initial value
-                bool split = false;
+                ProcessResult result = new ProcessResult();
+                result.MethodName = "SplitVideo";
 
                 try
                 {
                     // determine ffmpeg path
                     string ffmpegPath = GetFFmpegPath();
 
-                    // if the file and the Directory exist
+                    // validate input
                     if (FileHelper.Exists(inputFilePath) && FileHelper.Exists(ffmpegPath) && Directory.Exists(outputFolder))
                     {
                         // create a temp file
                         string cleansedFilePath = FileHelper.CreateFileNameWithPartialGuid(inputFilePath, 12);
 
                         // cleanse the video
-                        bool cleansed = CleanseVideo(inputFilePath, cleansedFilePath, statusUpdate);
+                        ProcessResult cleanseResult = CleanseVideo(inputFilePath, cleansedFilePath, statusUpdate);
 
                         // if cleansed
-                        if (cleansed)
+                        if (cleanseResult.Success)
                         {
                             if (NullHelper.Exists(statusUpdate))
                             {
-                                statusUpdate.Invoke("FFmpegHelper", $"Splitting video into {chunkLengthSeconds} second chunks...");
+                                statusUpdate("FFmpegHelper", $"Splitting video into {chunkLengthSeconds} second chunks...");
                             }
 
                             string outputPattern = Path.Combine(outputFolder, "chunk_%03d.mp4");
@@ -319,51 +376,70 @@ namespace DataJuggler.FFmpeg
                             process.StartInfo.RedirectStandardOutput = true;
                             process.StartInfo.RedirectStandardError = true;
 
+                            string outputText = string.Empty;
+                            string errorText = string.Empty;
+
                             process.OutputDataReceived += (sender, e) =>
                             {
-                                if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
+                                if (TextHelper.Exists(e.Data))
                                 {
-                                    statusUpdate.Invoke("FFmpegHelper", e.Data);
+                                    outputText += e.Data + Environment.NewLine;
+                                    if (NullHelper.Exists(statusUpdate))
+                                    {
+                                        statusUpdate("FFmpegHelper", e.Data);
+                                    }
                                 }
                             };
 
                             process.ErrorDataReceived += (sender, e) =>
                             {
-                                if ((TextHelper.Exists(e.Data)) && (NullHelper.Exists(statusUpdate)))
+                                if (TextHelper.Exists(e.Data))
                                 {
-                                    statusUpdate.Invoke("FFmpegHelper", e.Data);
+                                    errorText += e.Data + Environment.NewLine;
+                                    if (NullHelper.Exists(statusUpdate))
+                                    {
+                                        statusUpdate("FFmpegHelper", e.Data);
+                                    }
                                 }
                             };
+
+                            DateTime startTime = DateTime.Now;
 
                             process.Start();
                             process.BeginOutputReadLine();
                             process.BeginErrorReadLine();
                             process.WaitForExit();
 
-                            // set return value
-                            split = (process.ExitCode == 0);
+                            result.Process = process;
+                            result.OutputText = outputText.Trim();
+                            result.ErrorText = errorText.Trim();
+                            result.ExitCode = process.ExitCode;
+                            result.Duration = DateTime.Now - startTime;
+                            result.Success = (process.ExitCode == 0);
 
-                            // if the callback exists
                             if (NullHelper.Exists(statusUpdate))
                             {
-                                if (split)
-                                {
-                                    statusUpdate.Invoke("FFmpegHelper", "Video split complete.");
-                                }
-                                else
-                                {
-                                    statusUpdate.Invoke("FFmpegHelper", "Video split failed.");
-                                }
+                                string message = result.Success ? "Video split complete." : "Video split failed.";
+                                statusUpdate("FFmpegHelper", message);
                             }
                         }
+                        else
+                        {
+                            result.ErrorText = "Video cleansing failed.";
+                        }
+                    }
+                    else
+                    {
+                        result.ErrorText = "Missing file, FFmpeg path, or output folder.";
                     }
                 }
                 catch (Exception error)
                 {
-                    // if the callback exists
+                    result.ErrorText = "Exception: " + error.Message;
+
                     if (NullHelper.Exists(statusUpdate))
                     {
-                        statusUpdate.Invoke("FFmpegHelper", "Error: " + error.Message);
+                        statusUpdate("FFmpegHelper", "Error: " + result.ErrorText);
                     }
                     else
                     {
@@ -372,7 +448,7 @@ namespace DataJuggler.FFmpeg
                 }
 
                 // return value
-                return split;
+                return result;
             }
             #endregion
                         
